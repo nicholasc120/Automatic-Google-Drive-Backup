@@ -92,6 +92,19 @@ public class DriveDocumentBackup {
          }
          }
          */
+        
+        /**
+         * It might be a good idea to have a thread that continuously checks all the files on TEXT_FILE_OF_FILES_TO_BACK_UP
+         * alongside a main GUI thread that allows you to add more files to back up
+         * 
+         * 
+         * Back up files IF the file does not exist on the drive OR the date modified on the drive is older than the date modified on
+         * the local version
+         * 
+         */
+        
+        
+        
         /////* create a folder */////
         String folderName = "My Document Backups";
         //need to see if folder is already created to begin with -- if not then create it
