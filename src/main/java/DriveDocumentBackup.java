@@ -78,20 +78,20 @@ public class DriveDocumentBackup {
 
         // Print the names and IDs for up to 10 files.
         /*
-        FileList result = service.files().list()
-                .setPageSize(10)
-                .setFields("nextPageToken, files(id, name)")
-                .execute();
-        List<File> files = result.getFiles();
-        if (files == null || files.isEmpty()) {
-            System.out.println("No files found.");
-        } else {
-            System.out.println("Files:");
-            for (File file : files) {
-                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-            }
-        }
-        */
+         FileList result = service.files().list()
+         .setPageSize(10)
+         .setFields("nextPageToken, files(id, name)")
+         .execute();
+         List<File> files = result.getFiles();
+         if (files == null || files.isEmpty()) {
+         System.out.println("No files found.");
+         } else {
+         System.out.println("Files:");
+         for (File file : files) {
+         System.out.printf("%s (%s)\n", file.getName(), file.getId());
+         }
+         }
+         */
         /////* create a folder */////
         String folderName = "My Document Backups";
         //need to see if folder is already created to begin with -- if not then create it
@@ -102,7 +102,7 @@ public class DriveDocumentBackup {
         File fileMetadata = new File();
         fileMetadata.setName(folderName);
         fileMetadata.setMimeType("application/vnd.google-apps.folder");
-        
+
         File folder;
         if (folders == null || folders.isEmpty() || folders.getFiles().size() == 0) {
             folder = service.files().create(fileMetadata).setFields("id").execute();
@@ -116,12 +116,20 @@ public class DriveDocumentBackup {
         //String folderId = folder.getId();
         //create an open-save dialog to choose the file
         //also save this filepath to documments.txt
-        java.io.File filePath = new java.io.File("C:\\Users\\cerva\\Documents\\Projects\\DriveDocumentBackup\\src\\main\\test files\\Avengers Infinity War.mp4");
+        OpenDialog od = new OpenDialog();
+        //java.io.File filePath = new java.io.File("C:\\Users\\cerva\\Documents\\Projects\\DriveDocumentBackup\\src\\main\\test files\\Avengers Infinity War.mp4");
+        String pathToFile = od.showOpenDialog();
+        System.out.println("Path to file is " + pathToFile);
+
+        java.io.File filePath = new java.io.File(pathToFile);
+
+        String[] pathAsAnArray = pathToFile.split("\\\\");
 
         //add timestamped metadata for last modified
         fileMetadata = new File();
+
         //this will need to be updated with each file name
-        fileMetadata.setName("txt.txt");
+        fileMetadata.setName(pathAsAnArray[pathAsAnArray.length - 1]);
         fileMetadata.setParents(Collections.singletonList(folderId));
 
         //Arg 1 is a MIME type?
@@ -138,9 +146,14 @@ public class DriveDocumentBackup {
 
         File downloadedFile = service.files().get(fileId).execute();
         System.out.println("File Name: " + downloadedFile.getName());
-
+        
+        
+        //gotta figure out where to save the file
         try (OutputStream fileOutputStream = new FileOutputStream(downloadedFile.getName())) {
             outputStream.writeTo(fileOutputStream);
         }
+        
+        System.out.println("Done");
     }
+
 }
