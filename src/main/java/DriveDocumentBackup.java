@@ -14,6 +14,7 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -24,6 +25,7 @@ import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.*;
 
 public class DriveDocumentBackup {
 
@@ -38,11 +40,6 @@ public class DriveDocumentBackup {
     //private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_METADATA_READONLY);
     private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE);
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
-
-    /*
-     this is a text file containing every document to back up -- but how do we organize it on the google drive side?
-     */
-    private static final String TEXT_FILE_OF_FILES_TO_BACK_UP = "/documents.txt";
 
     /**
      * Creates an authorized Credential object.
@@ -92,19 +89,17 @@ public class DriveDocumentBackup {
          }
          }
          */
-        
         /**
-         * It might be a good idea to have a thread that continuously checks all the files on TEXT_FILE_OF_FILES_TO_BACK_UP
-         * alongside a main GUI thread that allows you to add more files to back up
-         * 
-         * 
-         * Back up files IF the file does not exist on the drive OR the date modified on the drive is older than the date modified on
-         * the local version
-         * 
+         * It might be a good idea to have a thread that continuously checks all
+         * the files on TEXT_FILE_OF_FILES_TO_BACK_UP alongside a main GUI
+         * thread that allows you to add more files to back up
+         *
+         *
+         * Back up files IF the file does not exist on the drive OR the date
+         * modified on the drive is older than the date modified on the local
+         * version
+         *
          */
-        
-        
-        
         /////* create a folder */////
         String folderName = "My Document Backups";
         //need to see if folder is already created to begin with -- if not then create it
@@ -118,55 +113,18 @@ public class DriveDocumentBackup {
 
         File folder;
         if (folders == null || folders.isEmpty() || folders.getFiles().size() == 0) {
-            folder = service.files().create(fileMetadata).setFields("id").execute();
+            folder = service.files().create(fileMetadata).setFields("id, lastModified").execute();
         } else {
             folder = folders.getFiles().get(0);
         }
         System.out.println("Folder ID: " + folder.getId());
         String folderId = folder.getId();
 
-        /////* insert a file into a folder */////
-        //String folderId = folder.getId();
-        //create an open-save dialog to choose the file
-        //also save this filepath to documments.txt
-        OpenDialog od = new OpenDialog();
-        //java.io.File filePath = new java.io.File("C:\\Users\\cerva\\Documents\\Projects\\DriveDocumentBackup\\src\\main\\test files\\Avengers Infinity War.mp4");
-        String pathToFile = od.showOpenDialog();
-        System.out.println("Path to file is " + pathToFile);
-
-        java.io.File filePath = new java.io.File(pathToFile);
-
-        String[] pathAsAnArray = pathToFile.split("\\\\");
-
-        //add timestamped metadata for last modified
-        fileMetadata = new File();
-
-        //this will need to be updated with each file name
-        fileMetadata.setName(pathAsAnArray[pathAsAnArray.length - 1]);
-        fileMetadata.setParents(Collections.singletonList(folderId));
-
-        //Arg 1 is a MIME type?
-        FileContent mediaContent = new FileContent("text/plain", filePath);
-        File file = service.files().create(fileMetadata, mediaContent)
-                .setFields("id, parents")
-                .execute();
-        System.out.println("File ID: " + file.getId());
-
-        /////* download a file */////
-        String fileId = file.getId();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        service.files().get(fileId).executeMediaAndDownloadTo(outputStream);
-
-        File downloadedFile = service.files().get(fileId).execute();
-        System.out.println("File Name: " + downloadedFile.getName());
-        
-        
-        //gotta figure out where to save the file
-        try (OutputStream fileOutputStream = new FileOutputStream(downloadedFile.getName())) {
-            outputStream.writeTo(fileOutputStream);
-        }
-        
-        System.out.println("Done");
+        ListOfFiles lof = new ListOfFiles();
+        theGUI gui = new theGUI(lof, folderId, service);
+        ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
+        FileChecker fc = new FileChecker(lof, folderId, service);
+        ex.scheduleWithFixedDelay(fc,0,1, TimeUnit.MINUTES);
     }
 
 }
